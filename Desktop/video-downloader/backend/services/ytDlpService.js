@@ -406,22 +406,15 @@ console.log(
 );
 
 
+const ytDlp = require("yt-dlp-exec");
 
-const child =
-spawn(
-
-"yt-dlp",
-
-args,
-
-{
-
-windowsHide:true
-
-}
-
+const child = spawn(
+    ytDlp.path,
+    args,
+    {
+        stdio: ["ignore", "pipe", "pipe"]
+    }
 );
-
 
 
 
