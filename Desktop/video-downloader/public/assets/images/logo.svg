@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="logoGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8a2be2" />
+      <stop offset="50%" stop-color="#4a00e0" />
+      <stop offset="100%" stop-color="#00d2ff" />
+    </linearGradient>
+    <filter id="dropGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#logoGlow)" />
+  <path d="M160 160 L352 160 C368 160 384 176 384 192 L384 320 C384 336 368 352 352 352 L160 352 C144 352 128 336 128 320 L128 192 C128 176 144 160 160 160 Z" fill="none" stroke="#ffffff" stroke-width="24" stroke-miterlimit="10"/>
+  <path d="M224 208 L312 256 L224 304 Z" fill="#ffffff" filter="url(#dropGlow)" />
+  <path d="M256 320 L256 416 M208 368 L256 416 L304 368" fill="none" stroke="#00d2ff" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

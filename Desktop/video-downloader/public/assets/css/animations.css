@@ -1,0 +1,119 @@
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 15px rgba(138, 43, 226, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(0, 210, 255, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 15px rgba(138, 43, 226, 0.4);
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse {
+  animation: pulseGlow 3s infinite ease-in-out;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+/* Premium Reveal Animation */
+
+.reveal{
+    opacity:0;
+    transform:translateY(30px);
+    animation: reveal .8s ease forwards;
+}
+
+
+@keyframes reveal{
+
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+
+}
+
+
+/* Card Hover */
+
+.step-card,
+.feature-card,
+.platform-grid span,
+.faq-card,
+.glass-card{
+
+    transition:.3s ease;
+
+}
+
+
+.step-card:hover,
+.feature-card:hover,
+.platform-grid span:hover,
+.faq-card:hover{
+
+    transform:translateY(-6px);
+
+    border-color:#7c4dff;
+
+    box-shadow:
+    0 0 25px rgba(124,77,255,.25);
+
+}
+
+
+/* Button Glow */
+
+.btn-primary{
+
+    animation:pulseGlow 3s infinite;
+
+}
+
+
+@keyframes pulseGlow{
+
+    0%,100%{
+        box-shadow:0 0 0 rgba(124,77,255,0);
+    }
+
+    50%{
+        box-shadow:0 0 25px rgba(124,77,255,.5);
+    }
+
+}
