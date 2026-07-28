@@ -2,22 +2,39 @@ const downloadService = require("../services/downloadService");
 const downloadStore = require("../services/downloadStore");
 const downloadQueue = require("../services/downloadQueue");
 
+const progressService = require("../services/progressService");
+
 const { validateURL } = require("../utils/validators");
 const { AppError } = require("../utils/errorHandler");
 
+
+
+// ======================================
+// Start Download
+// ======================================
+
 const downloadMedia = async (req, res, next) => {
 
+
     try {
+
 
         const {
 
             url,
+
             format = "mp4",
+
             quality = "best"
+
 
         } = req.body;
 
+
+
+
         if (!url) {
+
 
             return next(
 
@@ -31,9 +48,16 @@ const downloadMedia = async (req, res, next) => {
 
             );
 
+
         }
 
+
+
+
+
+
         if (!validateURL(url)) {
+
 
             return next(
 
@@ -47,29 +71,122 @@ const downloadMedia = async (req, res, next) => {
 
             );
 
+
         }
 
+
+
+
+
+        const allowedFormats = [
+
+            "mp4",
+
+            "mp3",
+
+            "webm"
+
+        ];
+
+
+
+
+        const selectedFormat =
+
+            format.toLowerCase();
+
+
+
+
+        if (
+
+            !allowedFormats.includes(
+                selectedFormat
+            )
+
+        ) {
+
+
+            return next(
+
+                new AppError(
+
+                    "Unsupported format.",
+
+                    400
+
+                )
+
+            );
+
+
+        }
+
+
+
+
+
+
+
         const downloadId =
+
             downloadService.createDownloadId();
 
+
+
+
+
+
+
         console.log(
+
             "DOWNLOAD START:",
+
             downloadId
+
         );
 
-        // Background Download
-        (async () => {
+
+
+
+
+
+
+        // Create progress
+
+        progressService.create(
+
+            downloadId
+
+        );
+
+
+
+
+
+
+
+
+        // Background process
+
+        (async()=>{
+
 
             try {
 
+
+
                 const result =
-                    await downloadQueue.add(() =>
+
+                    await downloadQueue.add(
+
+                        () =>
 
                         downloadService.processDownload(
 
                             url,
 
-                            format.toLowerCase(),
+                            selectedFormat,
 
                             quality,
 
@@ -79,21 +196,35 @@ const downloadMedia = async (req, res, next) => {
 
                     );
 
-                console.log(
-                    "PROCESS RESULT:",
-                    result
-                );
+
+
+
+
+
 
                 if (
+
                     !result ||
+
                     !result.filePath
+
                 ) {
 
+
                     throw new Error(
-                        "No file path returned"
+
+                        "Download failed: file missing"
+
                     );
 
+
                 }
+
+
+
+
+
+
 
                 downloadStore.set(
 
@@ -101,56 +232,151 @@ const downloadMedia = async (req, res, next) => {
 
                     {
 
+
                         filePath:
+
                             result.filePath,
 
+
                         fileName:
+
                             result.fileName
+
 
                     }
 
                 );
 
+
+
+
+
+
+                progressService.update(
+
+                    downloadId,
+
+                    {
+
+
+                        percent:100,
+
+
+                        status:"Ready"
+
+
+                    }
+
+                );
+
+
+
+
+
+
+
                 console.log(
 
-                    "DOWNLOAD STORED:",
+                    "DOWNLOAD READY:",
 
                     downloadId
 
                 );
 
-            } catch (err) {
 
-                console.error(
 
-                    "BACKGROUND DOWNLOAD ERROR:",
 
-                    err
-
-                );
 
             }
 
+            catch(error){
+
+
+
+                console.error(
+
+                    "DOWNLOAD ERROR:",
+
+                    error
+
+                );
+
+
+
+
+
+                progressService.update(
+
+                    downloadId,
+
+                    {
+
+
+                        percent:0,
+
+
+                        status:"Failed",
+
+
+                        error:
+
+                            error.message
+
+
+                    }
+
+                );
+
+
+            }
+
+
+
         })();
+
+
+
+
+
+
+
 
         return res.json({
 
-            status: "started",
+            status:"started",
 
             downloadId
 
+
         });
 
-    } catch (err) {
 
-        next(err);
+
+
+
 
     }
 
+    catch(error){
+
+
+        next(error);
+
+
+    }
+
+
 };
+
+
+
+
+
 
 module.exports = {
 
+
     downloadMedia
+
 
 };

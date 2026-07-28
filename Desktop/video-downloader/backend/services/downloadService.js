@@ -5,7 +5,9 @@ const { v4: uuidv4 } = require("uuid");
 const ytDlpService = require("./ytDlpService");
 const ffmpegService = require("./ffmpegService");
 const progressService = require("./progressService");
+
 const { AppError } = require("../utils/errorHandler");
+
 
 
 
@@ -15,13 +17,12 @@ const { AppError } = require("../utils/errorHandler");
 
 const createDownloadId = () => {
 
-    const downloadId = uuidv4();
-
-    progressService.create(downloadId);
-
-    return downloadId;
+    return uuidv4();
 
 };
+
+
+
 
 
 
@@ -32,41 +33,112 @@ const createDownloadId = () => {
 const waitForFile = async (
 
     downloadsDir,
+
     downloadId
 
 ) => {
 
-    const timeout = 10 * 60 * 1000; // 10 minutes
 
-    const start = Date.now();
+    const timeout =
+        10 * 60 * 1000;
 
-    while (Date.now() - start < timeout) {
 
-        const files = await fs.readdir(downloadsDir);
+    const start =
+        Date.now();
 
-        const targetFile = files.find(file =>
 
-            file.startsWith(downloadId) &&
-            !file.endsWith(".part") &&
-            !file.endsWith(".ytdl")
 
-        );
+    while (
 
-        if (targetFile) {
+        Date.now() - start < timeout
 
-            return targetFile;
+    ) {
+
+
+
+        if (
+
+            progressService.isCancelled(
+                downloadId
+            )
+
+        ) {
+
+
+            return null;
 
         }
 
+
+
+
+        const files =
+            await fs.readdir(
+                downloadsDir
+            );
+
+
+
+
+
+        const targetFile =
+
+            files.find(file =>
+
+
+                file.startsWith(downloadId)
+
+                &&
+
+                !file.endsWith(".part")
+
+                &&
+
+                !file.endsWith(".ytdl")
+
+
+            );
+
+
+
+
+
+
+        if(targetFile){
+
+
+            return targetFile;
+
+
+        }
+
+
+
+
+
+
         await new Promise(resolve =>
-            setTimeout(resolve, 1000)
+
+            setTimeout(resolve,1000)
+
         );
+
+
 
     }
 
+
+
+
+
     return null;
 
+
 };
+
+
+
+
 
 
 
@@ -74,66 +146,153 @@ const waitForFile = async (
 // Main Download Process
 // ===============================
 
+
 const processDownload = async (
 
     url,
+
     format,
+
     quality,
+
     downloadId
 
-) => {
+)=>{
 
-    const downloadsDir = path.resolve(
 
-        process.env.DOWNLOADS_DIR || "./downloads"
+    const downloadsDir =
 
+        path.resolve(
+
+            process.env.DOWNLOADS_DIR ||
+
+            "./downloads"
+
+        );
+
+
+
+
+    await fs.ensureDir(
+        downloadsDir
     );
 
-    await fs.ensureDir(downloadsDir);
 
 
 
-    const outputTemplate = path.join(
 
-        downloadsDir,
-        `${downloadId}.%(ext)s`
 
+
+    const outputTemplate =
+
+        path.join(
+
+            downloadsDir,
+
+            `${downloadId}.%(ext)s`
+
+        );
+
+
+
+
+
+
+
+    console.log(
+        "=================================="
     );
 
+    console.log(
+        "DOWNLOAD ID:",
+        downloadId
+    );
 
-
-    console.log("==================================");
-    console.log("DOWNLOAD ID:", downloadId);
-    console.log("OUTPUT:", outputTemplate);
-    console.log("==================================");
-
-
-
-    // Download
-
-    await ytDlpService.downloadMediaStream(
-
-        downloadId,
-        url,
-        format,
-        quality,
+    console.log(
+        "OUTPUT:",
         outputTemplate
+    );
 
+    console.log(
+        "=================================="
     );
 
 
 
-    // Keep UI alive
+
+
+
+
+    const downloadResult =
+
+        await ytDlpService.downloadMediaStream(
+
+            downloadId,
+
+            url,
+
+            format,
+
+            quality,
+
+            outputTemplate
+
+        );
+
+
+
+
+
+
+
+    // Cancelled
+
+    if(downloadResult === false){
+
+
+        return null;
+
+
+    }
+
+
+
+
+
+
+
+    if(
+
+        progressService.isCancelled(
+            downloadId
+        )
+
+    ){
+
+        return null;
+
+    }
+
+
+
+
+
+
+
 
     progressService.update(
 
         downloadId,
+
         {
 
-            percent: 99,
-            speed: "",
-            eta: "",
-            status: "Finalizing..."
+            percent:99,
+
+            speed:"",
+
+            eta:"",
+
+            status:"Finalizing..."
 
         }
 
@@ -141,50 +300,97 @@ const processDownload = async (
 
 
 
-    console.log("WAITING FINAL FILE...");
 
 
 
-    const targetFile = await waitForFile(
-
-        downloadsDir,
-        downloadId
-
-    );
 
 
+    const targetFile =
 
-    console.log("TARGET FILE:", targetFile);
+        await waitForFile(
 
+            downloadsDir,
 
+            downloadId
 
-    if (!targetFile) {
-
-        throw new AppError(
-            "Downloaded file not found",
-            500
         );
 
-    }
 
 
 
-    let fullPath = path.join(
 
-        downloadsDir,
+
+
+    console.log(
+
+        "TARGET FILE:",
+
         targetFile
 
     );
 
 
 
-    let ext = path.extname(targetFile)
-
-        .replace(".", "");
 
 
 
-    console.log("FULL PATH:", fullPath);
+
+    if(!targetFile){
+
+
+        throw new AppError(
+
+            "Downloaded file not found",
+
+            500
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+    let fullPath =
+
+        path.join(
+
+            downloadsDir,
+
+            targetFile
+
+        );
+
+
+
+
+
+
+    let ext =
+
+        path.extname(targetFile)
+
+        .replace(".","");
+
+
+
+
+
+
+
+    console.log(
+        "FULL PATH:",
+        fullPath
+    );
+
+
+
+
+
 
 
 
@@ -192,20 +398,27 @@ const processDownload = async (
     // MP3 Conversion
     // ===============================
 
-    if (
 
-        format === "mp3" &&
+    if(
+
+        format === "mp3"
+
+        &&
+
         ext !== "mp3"
 
-    ) {
+    ){
+
+
 
         progressService.update(
 
             downloadId,
+
             {
 
-                percent: 99,
-                status: "Converting to MP3..."
+                status:
+                "Converting to MP3..."
 
             }
 
@@ -213,37 +426,71 @@ const processDownload = async (
 
 
 
-        const convertedPath = path.join(
 
-            downloadsDir,
-            `${downloadId}.mp3`
 
-        );
+
+        const convertedPath =
+
+            path.join(
+
+                downloadsDir,
+
+                `${downloadId}.mp3`
+
+            );
+
+
+
+
 
 
 
         await ffmpegService.convertToMp3(
 
             fullPath,
+
             convertedPath
 
         );
 
 
 
-        await fs.remove(fullPath);
 
 
 
-        fullPath = convertedPath;
+        await fs.remove(
+            fullPath
+        );
 
-        ext = "mp3";
+
+
+
+
+
+
+        fullPath =
+            convertedPath;
+
+
+        ext =
+            "mp3";
+
 
     }
 
 
 
-    if (!(await fs.pathExists(fullPath))) {
+
+
+
+
+
+    if(
+
+        !(await fs.pathExists(fullPath))
+
+    ){
+
 
         throw new AppError(
 
@@ -253,52 +500,72 @@ const processDownload = async (
 
         );
 
+
     }
+
+
+
+
+
 
 
 
     const result = {
 
+
         downloadId,
 
-        filePath: fullPath,
 
-        fileName: `media_${downloadId.substring(0,8)}.${ext}`
+        filePath:
+            fullPath,
+
+
+        fileName:
+
+            `media_${downloadId.substring(0,8)}.${ext}`
+
 
     };
 
 
 
-    console.log("FINAL RESULT:", result);
 
 
 
-    progressService.update(
 
-        downloadId,
-        {
+    console.log(
 
-            percent: 100,
-            speed: "",
-            eta: "",
-            status: "Completed"
+        "FINAL RESULT:",
 
-        }
+        result
 
     );
 
 
 
+
+
+
+
+
     return result;
+
 
 };
 
 
 
+
+
+
+
 module.exports = {
+
 
     createDownloadId,
 
+
     processDownload
+
 
 };

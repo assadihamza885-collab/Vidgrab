@@ -1,25 +1,34 @@
-const express = require('express');
+const express = require("express");
+
 process.env.FFMPEG_BINARY = require("ffmpeg-static");
 
-const path = require('path');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const fs = require('fs-extra');
-const os = require('os');
+const path = require("path");
+const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const fs = require("fs-extra");
+const os = require("os");
 
-require('dotenv').config();
+require("dotenv").config();
 
 
 // ===============================
 // Routes
 // ===============================
 
-const infoRoutes = require('./backend/routes/infoRoutes');
-const downloadRoutes = require('./backend/routes/downloadRoutes');
-const progressRoutes = require('./backend/routes/progressRoutes');
+const infoRoutes =
+    require("./backend/routes/infoRoutes");
+
+const downloadRoutes =
+    require("./backend/routes/downloadRoutes");
+
+const progressRoutes =
+    require("./backend/routes/progressRoutes");
+
 const cancelRoutes =
-require("./backend/routes/cancelRoutes");
+    require("./backend/routes/cancelRoutes");
+
+
 
 // ===============================
 // Utils
@@ -27,13 +36,12 @@ require("./backend/routes/cancelRoutes");
 
 const {
     globalErrorHandler
-} = require('./backend/utils/errorHandler');
+} = require("./backend/utils/errorHandler");
 
 
 const {
     initScheduledCleanup
-} = require('./backend/utils/fileCleanup');
-
+} = require("./backend/utils/fileCleanup");
 
 
 
@@ -43,12 +51,13 @@ const {
 
 const app = express();
 
+
 const PORT =
-process.env.PORT || 3000;
+    process.env.PORT || 3000;
 
 
 app.set(
-    'trust proxy',
+    "trust proxy",
     1
 );
 
@@ -60,15 +69,15 @@ app.set(
 // ===============================
 
 const tempDir =
-path.resolve(
-    process.env.TEMP_DIR || './temp'
-);
+    path.resolve(
+        process.env.TEMP_DIR || "./temp"
+    );
 
 
 const downloadsDir =
-path.resolve(
-    process.env.DOWNLOADS_DIR || './downloads'
-);
+    path.resolve(
+        process.env.DOWNLOADS_DIR || "./downloads"
+    );
 
 
 
@@ -84,8 +93,8 @@ fs.ensureDirSync(downloadsDir);
 // Security
 // ===============================
 
-
 app.use(
+
     helmet({
 
         contentSecurityPolicy:false,
@@ -93,12 +102,11 @@ app.use(
         crossOriginEmbedderPolicy:false
 
     })
+
 );
 
 
-
 app.use(cors());
-
 
 
 app.use(
@@ -106,13 +114,11 @@ app.use(
 );
 
 
-
 app.use(
     express.urlencoded({
         extended:true
     })
 );
-
 
 
 
@@ -128,28 +134,31 @@ rateLimit({
 
     windowMs:
 
-    parseInt(
-        process.env.WINDOW_MS
-    )
-    ||
-    15 * 60 * 1000,
+        parseInt(
+            process.env.WINDOW_MS
+        )
+        ||
+        15 * 60 * 1000,
 
 
     max:
 
-    parseInt(
-        process.env.MAX_REQUESTS_PER_WINDOW
-    )
-    ||
-    100,
+        parseInt(
+            process.env.MAX_REQUESTS_PER_WINDOW
+        )
+        ||
+        100,
 
 
     message:{
 
+
         status:"fail",
+
 
         message:
         "Too many requests"
+
 
     }
 
@@ -158,33 +167,21 @@ rateLimit({
 
 
 
-const progressLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10000
+
+
+const progressLimiter =
+rateLimit({
+
+    windowMs:
+        15 * 60 * 1000,
+
+
+    max:
+        10000
+
+
 });
 
-app.use('/api/progress', progressLimiter, progressRoutes);
-app.use(
-    "/api/cancel",
-    cancelRoutes
-);
-
-
-
-
-// ===============================
-// Frontend
-// ===============================
-
-
-app.use(
-    express.static(
-        path.join(
-            __dirname,
-            'public'
-        )
-    )
-);
 
 
 
@@ -195,23 +192,75 @@ app.use(
 
 
 app.use(
-    '/api/progress',
+
+    "/api/progress",
+
+    progressLimiter,
+
     progressRoutes
+
 );
 
 
 
 app.use(
-    '/api/info',
+
+    "/api/cancel",
+
+    cancelRoutes
+
+);
+
+
+
+app.use(
+
+    "/api/info",
+
+    limiter,
+
     infoRoutes
+
 );
 
 
 
 app.use(
-    '/api/download',
+
+    "/api/download",
+
+    limiter,
+
     downloadRoutes
+
 );
+
+
+
+
+
+
+// ===============================
+// Frontend
+// ===============================
+
+
+app.use(
+
+    express.static(
+
+        path.join(
+
+            __dirname,
+
+            "public"
+
+        )
+
+    )
+
+);
+
 
 
 
@@ -224,22 +273,31 @@ app.use(
 
 
 app.get(
-'/',
-(req,res)=>{
+
+    "/",
+
+    (req,res)=>{
 
 
-    res.sendFile(
+        res.sendFile(
 
-        path.join(
-            __dirname,
-            'public',
-            'index.html'
-        )
+            path.join(
 
-    );
+                __dirname,
+
+                "public",
+
+                "index.html"
+
+            )
+
+        );
 
 
-});
+    }
+
+);
+
 
 
 
@@ -252,16 +310,21 @@ app.get(
 
 
 app.get(
-'/test',
-(req,res)=>{
+
+    "/test",
+
+    (req,res)=>{
 
 
-    res.send(
-        "SERVER IS WORKING"
-    );
+        res.send(
+            "SERVER IS WORKING"
+        );
 
 
-});
+    }
+
+);
+
 
 
 
@@ -274,7 +337,9 @@ app.get(
 
 
 app.use(
+
     globalErrorHandler
+
 );
 
 
@@ -291,27 +356,33 @@ app.use(
 initScheduledCleanup(
 
     [
+
         tempDir,
+
         downloadsDir
+
     ],
 
 
     parseInt(
+
         process.env.CLEANUP_INTERVAL_MINUTES
+
     )
     ||
     15,
 
 
     parseInt(
+
         process.env.MAX_FILE_AGE_MINUTES
+
     )
     ||
     30
 
 
 );
-
 
 
 
@@ -328,7 +399,7 @@ function getLocalIP(){
 
 
     const interfaces =
-    os.networkInterfaces();
+        os.networkInterfaces();
 
 
 
@@ -345,12 +416,16 @@ function getLocalIP(){
             if(
 
                 net.family === "IPv4"
+
                 &&
+
                 !net.internal
 
             ){
 
+
                 return net.address;
+
 
             }
 
@@ -361,8 +436,8 @@ function getLocalIP(){
     }
 
 
-
     return "localhost";
+
 
 }
 
@@ -380,14 +455,15 @@ function getLocalIP(){
 
 app.listen(
 
-PORT,
+    PORT,
 
-"0.0.0.0",
+    "0.0.0.0",
 
-()=>{
+    ()=>{
 
 
-console.log(
+        console.log(
+
 `
 ====================================================
 
@@ -410,7 +486,10 @@ console.log(
 
 ====================================================
 `
+
+        );
+
+
+    }
+
 );
-
-
-});
