@@ -1,12 +1,10 @@
 const processStore = require("./downloadProcessStore");
 const progressService = require("./progressService");
-
 const { AppError } = require("../utils/errorHandler");
 
 const ytDlp = require("yt-dlp-exec");
 
-console.log("YT-DLP EXEC SERVICE LOADED");
-console.log("🔥 NEW YTDLP SERVICE RUNNING V2");
+console.log("🔥 YT-DLP SERVICE FIXED V4");
 
 
 
@@ -18,15 +16,14 @@ const executeYtDlp = async (args) => {
 
     try {
 
-
-        const output = await ytDlp.exec(...args);
-
+        const output = await ytDlp(
+            ...args
+        );
 
         return output;
 
 
-    } catch (err) {
-
+    } catch(err){
 
         console.error(
             "YT-DLP JSON ERROR:",
@@ -39,12 +36,9 @@ const executeYtDlp = async (args) => {
             400
         );
 
-
     }
 
 };
-
-
 
 
 
@@ -54,76 +48,34 @@ const executeYtDlp = async (args) => {
 // Metadata
 // =====================================
 
-const getVideoMetadata = async (url) => {
+const getVideoMetadata = async(url)=>{
 
 
     const args = [
 
         "--dump-single-json",
-
         "--skip-download",
-
         "--no-playlist",
-
         "--no-warnings",
-
-        "--ignore-errors",
-
         "--no-check-certificates",
-
         "--user-agent",
-
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-
+        "Mozilla/5.0",
         url
 
     ];
 
 
 
-
-    if (
-
-        url.includes("youtube.com") ||
-
-        url.includes("youtu.be")
-
-    ) {
+    if(url.includes("youtube") || url.includes("youtu")){
 
 
         args.push(
-
             "--extractor-args",
-
             "youtube:player_client=android"
-
         );
 
 
     }
-
-
-
-
-    if (
-
-        url.includes("instagram.com")
-
-    ) {
-
-
-        args.push(
-
-            "--extractor-args",
-
-            "instagram:api_version=v1"
-
-        );
-
-
-    }
-
-
 
 
 
@@ -132,66 +84,32 @@ const getVideoMetadata = async (url) => {
 
 
 
-
     const data =
-
-        typeof raw === "string"
-
-        ?
-
-        JSON.parse(raw)
-
-        :
-
-        raw;
+        JSON.parse(raw);
 
 
 
-
-
-
-    let qualities = [];
-
-
-
+    let qualities=[];
 
 
     if(Array.isArray(data.formats)){
 
 
-        qualities = [
+        qualities=[
 
             ...new Set(
 
                 data.formats
 
-                .filter(
-                    f => f.height
-                )
+                .filter(x=>x.height)
 
-                .map(
-                    f => `${f.height}p`
-                )
+                .map(x=>`${x.height}p`)
 
             )
 
-        ]
-
-        .sort(
-
-            (a,b)=>
-
-            parseInt(b) -
-
-            parseInt(a)
-
-        );
-
+        ];
 
     }
-
-
-
 
 
 
@@ -199,63 +117,38 @@ const getVideoMetadata = async (url) => {
 
 
         title:
-            data.title || "Untitled",
+        data.title || "Unknown",
 
 
         thumbnail:
-            data.thumbnail || "",
+        data.thumbnail || "",
 
 
         duration:
-            data.duration || 0,
+        data.duration || 0,
 
 
         uploader:
-            data.uploader || "Unknown",
-
-
-        viewCount:
-            data.view_count || 0,
-
+        data.uploader || "",
 
 
         qualities:
-
-            qualities.length
-
-            ?
-
-            qualities
-
-            :
-
-            [
-
-                "1080p",
-
-                "720p",
-
-                "480p",
-
-                "360p"
-
-            ],
+        qualities.length
+        ?
+        qualities
+        :
+        [
+            "1080p",
+            "720p",
+            "480p",
+            "360p"
+        ],
 
 
-
-
-        formats:
-
-            [
-
-                "mp4",
-
-                "mp3",
-
-                "webm"
-
-            ]
-
+        formats:[
+            "mp4",
+            "mp3"
+        ]
 
 
     };
@@ -272,558 +165,331 @@ const getVideoMetadata = async (url) => {
 
 
 // =====================================
-// Download Stream
+// Download
 // =====================================
 
 const downloadMediaStream = (
 
     downloadId,
-
     url,
-
     format,
-
     quality,
-
     outputTemplate
 
-) => {
 
+)=>{
 
 
-    return new Promise(async(resolve,reject)=>{
+return new Promise(async(resolve,reject)=>{
 
 
-        try {
+try{
 
 
+let formatSpec =
+"bestvideo+bestaudio/best";
 
-            if(
 
-                progressService.isCancelled(
-                    downloadId
-                )
 
-            ){
+if(format==="mp3"){
 
-                return resolve(false);
+formatSpec =
+"bestaudio/best";
 
-            }
+}
 
 
 
 
+if(
+quality &&
+quality!=="best"
+){
 
+const h=parseInt(quality);
 
 
-            let formatSpec =
-                "bestvideo+bestaudio/best";
+if(!isNaN(h)){
 
+formatSpec =
+`bestvideo[height<=${h}]+bestaudio/best`;
 
+}
 
 
+}
 
 
-            if(format === "mp3"){
 
 
-                formatSpec =
-                    "bestaudio/best";
+const args=[
 
 
-            }
+"-f",
+formatSpec,
 
 
+"--newline",
 
 
+"--progress",
 
 
-            if(
+"--no-playlist",
 
-                quality &&
 
-                quality !== "best"
+"--no-check-certificates",
 
-            ){
 
+"-o",
+outputTemplate,
 
-                const height =
-                    parseInt(quality);
 
+url
 
 
+];
 
-                if(!isNaN(height)){
 
 
-                    formatSpec =
 
-                    `bestvideo[height<=${height}]+bestaudio/best`;
 
 
+if(format==="mp3"){
 
-                }
 
+args.splice(
 
-            }
+args.length-1,
 
+0,
 
+"-x",
 
+"--audio-format",
 
+"mp3"
 
+);
 
 
+}
+else{
 
 
-            const args = [
+args.splice(
 
-                "-f",
+args.length-1,
 
-                formatSpec,
+0,
 
+"--merge-output-format",
 
-                "--newline",
+"mp4"
 
+);
 
-                "--progress",
 
+}
 
-                "--no-playlist",
 
 
-                "--ignore-errors",
 
+console.log(
+"YT-DLP DOWNLOAD ARGS",
+args
+);
 
-                "--no-check-certificates",
 
 
 
-                "-o",
 
-                outputTemplate,
+const child =
+ytDlp.exec(
+    ...args
+);
 
 
-                url
 
+processStore.set(
+downloadId,
+child
+);
 
-            ];
 
 
 
 
+child.stdout.on(
+"data",
+(data)=>{
 
 
+const text =
+data.toString();
 
-            if(format === "mp3"){
 
+console.log(text);
 
-                args.splice(
 
-                    args.length - 1,
 
-                    0,
+const match =
+text.match(
+/(\d+\.\d+)%/
+);
 
-                    "-x",
 
-                    "--audio-format",
 
-                    "mp3"
+if(match){
 
-                );
 
+progressService.update(
 
-            }
+downloadId,
 
-            else {
+{
 
+percent:
+Math.floor(
+parseFloat(match[1])
+),
 
-                args.splice(
+status:
+"Downloading..."
 
-                    args.length - 1,
+}
 
-                    0,
+);
 
-                    "--merge-output-format",
 
-                    "mp4"
+}
 
-                );
 
 
-            }
+}
 
+);
 
 
 
 
 
 
+child.stderr.on(
+"data",
+data=>{
 
-            if(
+console.log(
+"YT-DLP:",
+data.toString()
+);
 
-                url.includes("youtube.com")
 
-                ||
+}
 
-                url.includes("youtu.be")
+);
 
-            ){
 
 
-                args.splice(
 
-                    args.length - 1,
 
-                    0,
 
-                    "--extractor-args",
+child.on(
+"close",
+(code)=>{
 
-                    "youtube:player_client=android"
 
-                );
+processStore.remove(
+downloadId
+);
 
 
-            }
 
+if(code!==0){
 
 
+return reject(
 
+new AppError(
+"yt-dlp failed",
+500
+)
 
+);
 
-            if(
 
-                url.includes("instagram.com")
+}
 
-            ){
 
 
-                args.splice(
 
-                    args.length - 1,
+progressService.update(
 
-                    0,
+downloadId,
 
-                    "--extractor-args",
+{
 
-                    "instagram:api_version=v1"
+percent:100,
 
-                );
+status:"Completed"
 
+}
 
-            }
+);
 
 
 
+resolve(true);
 
 
+}
 
+);
 
-            console.log(
-                "YT-DLP DOWNLOAD START"
-            );
 
 
-            console.log(args);
 
 
 
 
+child.on(
+"error",
+err=>{
 
 
+processStore.remove(
+downloadId
+);
 
 
+reject(
 
-            const process =
+new AppError(
+err.message,
+500
+)
 
-                ytDlp.exec(...args);
+);
 
 
+}
 
+);
 
 
 
 
-            processStore.set(
+}
 
-                downloadId,
+catch(err){
 
-                process
+reject(err);
 
-            );
+}
 
 
 
-
-
-
-
-
-
-            process.stdout.on(
-
-                "data",
-
-                (data)=>{
-
-
-                    const text =
-                        data.toString();
-
-
-
-
-                    console.log(
-                        text
-                    );
-
-
-
-                    const match =
-
-                        text.match(
-                            /(\d+\.\d+)%/
-                        );
-
-
-
-
-
-                    if(match){
-
-
-
-                        const percent =
-
-                            Math.floor(
-
-                                parseFloat(
-                                    match[1]
-                                )
-
-                            );
-
-
-
-
-
-                        progressService.update(
-
-                            downloadId,
-
-                            {
-
-
-                                percent,
-
-
-                                status:
-
-                                percent >= 100
-
-                                ?
-
-                                "Processing..."
-
-                                :
-
-                                "Downloading..."
-
-
-                            }
-
-                        );
-
-
-                    }
-
-
-
-                }
-
-            );
-
-
-
-
-
-
-
-
-
-            process.stderr.on(
-
-                "data",
-
-                (data)=>{
-
-
-                    console.log(
-
-                        "YT-DLP:",
-
-                        data.toString()
-
-                    );
-
-
-                }
-
-            );
-
-
-
-
-
-
-
-
-
-            process.on(
-
-                "close",
-
-                (code)=>{
-
-
-                    processStore.remove(
-
-                        downloadId
-
-                    );
-
-
-
-
-
-                    if(
-
-                        progressService.isCancelled(
-                            downloadId
-                        )
-
-                    ){
-
-                        return resolve(false);
-
-                    }
-
-
-
-
-
-
-                    if(code !== 0){
-
-
-                        return reject(
-
-                            new AppError(
-
-                                "yt-dlp download failed",
-
-                                500
-
-                            )
-
-                        );
-
-
-                    }
-
-
-
-
-
-
-
-                    progressService.update(
-
-                        downloadId,
-
-                        {
-
-
-                            percent:100,
-
-
-                            status:"Completed"
-
-
-                        }
-
-                    );
-
-
-
-
-
-
-                    resolve(true);
-
-
-
-                }
-
-            );
-
-
-
-
-
-
-
-
-
-            process.on(
-
-                "error",
-
-                (err)=>{
-
-
-                    processStore.remove(
-
-                        downloadId
-
-                    );
-
-
-
-
-
-                    reject(
-
-                        new AppError(
-
-                            err.message,
-
-                            500
-
-                        )
-
-                    );
-
-
-                }
-
-            );
-
-
-
-
-        }
-
-        catch(error){
-
-
-            reject(error);
-
-
-        }
-
-
-    });
-
+});
 
 
 };
@@ -836,18 +502,10 @@ const downloadMediaStream = (
 
 
 
-// =====================================
-// Export
-// =====================================
+module.exports={
 
+getVideoMetadata,
 
-module.exports = {
-
-
-    getVideoMetadata,
-
-
-    downloadMediaStream
-
+downloadMediaStream
 
 };
